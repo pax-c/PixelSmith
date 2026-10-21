@@ -34,8 +34,13 @@ select,input[type=text],input[type=number]{background:var(--d);color:var(--t);bo
 #wl{position:fixed;top:24px;left:0;right:0;bottom:0;z-index:40;background:var(--bg);display:grid;place-items:center}#wl[hidden]{display:none}
 #wl h1{font-size:30px;font-weight:300;margin:0 0 6px;color:#fff}#wl p{margin:0 0 28px;color:var(--m);font-size:13px}#wl .row{display:flex;gap:14px}
 #wl button{width:190px;height:120px;background:var(--p);color:var(--t);border:1px solid #000;border-radius:4px;font:inherit;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#wl button:hover{border-color:var(--a);background:var(--p2)}#rf{margin-left:auto;margin-right:6px;align-self:center;display:flex;align-items:center;gap:6px;background:var(--p2);color:var(--t);border:1px solid #000;border-radius:3px;padding:0 10px;height:20px;font:inherit}#rf:hover{background:var(--a);color:#fff}
-#rf svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#wl button:hover{border-color:var(--a);background:var(--p2)}#rfw{margin-left:auto;margin-right:6px;align-self:center;position:relative;display:flex}
+#rf,#rc{display:flex;align-items:center;gap:6px;background:var(--p2);color:var(--t);border:1px solid #000;height:20px;font:inherit;padding:0 10px}#rf{border-radius:3px 0 0 3px}#rc{border-radius:0 3px 3px 0;border-left:1px solid #555;padding:0 5px}#rf:hover,#rc:hover{background:var(--a);color:#fff}
+#rd{position:absolute;top:100%;right:0;margin-top:2px;background:var(--p);border:1px solid #000;min-width:220px;max-height:75vh;overflow:auto;z-index:60;padding:3px 0;box-shadow:0 6px 16px #000a}#rd[hidden]{display:none}
+#rd label{display:flex;align-items:center;gap:9px;padding:4px 12px}#rd label:hover{background:var(--p2)}#rd hr{border:0;border-top:1px solid #222;margin:3px 0}#rd input{accent-color:var(--a)}
+.pr{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0 4px}.pr button{background:var(--d);color:var(--m);border:1px solid #000;border-radius:3px;padding:6px 0 5px;font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pr button:hover{border-color:var(--a);color:var(--t)}.pr button.on{border-color:var(--a);color:#fff;background:#243447}.pr .bx{width:28px;height:28px;display:grid;place-items:center}.pr i{display:block;border:1.5px solid currentColor;border-radius:2px}
+#rf svg,#rc svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);background:var(--d);border:1px solid #000;padding:7px 14px;border-radius:4px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}#toast.on{opacity:1}
 .lgw{width:76px;margin-bottom:18px}.lgw svg{display:block;width:100%;height:auto}#wl button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 </style></head><body><div id="app">
@@ -64,13 +69,13 @@ function render(){mc.clearRect(0,0,W,H);for(const l of layers){if(!l.vis)continu
 /* history */
 const snap=n=>({n,W,H,cur,L:layers.map(l=>({id:l.id,name:l.name,vis:l.vis,op:l.op,bm:l.bm,fx:{...l.fx},d:l.x.getImageData(0,0,W,H)}))});
 function rest(s){W=s.W;H=s.H;cur=s.cur;layers=s.L.map(o=>{const c=cv(W,H),x=ctx2(c);x.putImageData(o.d,0,0);return{id:o.id,name:o.name,vis:o.vis,op:o.op,bm:o.bm,fx:{...o.fx},c,x}});setSize();if(sel&&sel.length!=W*H)setSel(null);render();panels()}
-function commit(n){hist.length=hi+1;hist.push(snap(n));if(hist.length>30)hist.shift();hi=hist.length-1;render();panels()}
+function commit(n){hist.length=hi+1;hist.push(snap(n));const cap=Math.max(4,Math.min(30,Math.floor(4e8/(W*H*4*layers.length))));while(hist.length>cap)hist.shift();hi=hist.length-1;render();panels()}
 const undo=()=>{if(hi>0)rest(hist[--hi])},redo=()=>{if(hi<hist.length-1)rest(hist[++hi])};
 function begin(){eb=L().x.getImageData(0,0,W,H)}
 function end(n){if(sel&&eb){const c=L().x,d=c.getImageData(0,0,W,H),a=d.data,b=eb.data;for(let i=0;i<W*H;i++)if(!sel[i]){const j=i*4;a[j]=b[j];a[j+1]=b[j+1];a[j+2]=b[j+2];a[j+3]=b[j+3]}c.putImageData(d,0,0)}eb=null;commit(n)}
 /* selection */
 function setSel(m){sel=m;ol=[];if(m)for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(m[i]&&(!x||!y||x==W-1||y==H-1||!m[i-1]||!m[i+1]||!m[i-W]||!m[i+W]))ol.push(i)}ants()}
-function ants(){oc.clearRect(0,0,W,H);if(ol.length){const d=oc.createImageData(W,H),a=d.data;for(const i of ol){const v=(((i%W)+(i/W|0)+ph)>>2)&1?255:0,j=i*4;a[j]=a[j+1]=a[j+2]=v;a[j+3]=255}oc.putImageData(d,0,0)}pv&&pv()}
+let ad;function ants(){oc.clearRect(0,0,W,H);if(ol.length){if(!ad||ad.width!=W||ad.height!=H)ad=oc.createImageData(W,H);else ad.data.fill(0);const d=ad,a=d.data;for(const i of ol){const v=(((i%W)+(i/W|0)+ph)>>2)&1?255:0,j=i*4;a[j]=a[j+1]=a[j+2]=v;a[j+3]=255}oc.putImageData(d,0,0)}pv&&pv()}
 setInterval(()=>{if(ol.length&&!dr){ph++;ants()}},160);
 const maskOf=f=>{const t=cv(W,H),x=t.getContext('2d');x.fillStyle='#fff';f(x);const d=x.getImageData(0,0,W,H).data,m=new Uint8Array(W*H);for(let i=0;i<m.length;i++)m[i]=d[i*4+3]>127?1:0;return m};
 const merge=(n,md)=>{if(!sel||md=='r')return n;const o=new Uint8Array(W*H);for(let i=0;i<o.length;i++)o[i]=md=='a'?(sel[i]|n[i]):(sel[i]&!n[i]);return o};
@@ -118,13 +123,17 @@ Object.assign(FL,{
 function fxd(t,fs,fn){begin();const run=v=>{L().x.putImageData(eb,0,0);fn(L().x,v);render()};dlg(t,fs,v=>{run(v);end(t)},run,()=>{L().x.putImageData(eb,0,0);eb=null;render()})}
 function runFx(n,d){if(d[0])fxd(n,d[0],d[1]);else{begin();d[1](L().x);end(n)}}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),3000)}
-function randFx(){if(!$('#wl').hidden)return;const e=Object.entries(FL),[n,d]=e[Math.random()*e.length|0],v={};(d[0]||[]).forEach(f=>{const q=f.s||1;v[f.k]=Math.round((f.min+Math.random()*(f.max-f.min))/q)*q});begin();d[1](L().x,v);end('Random: '+n);toast('Random filter: '+n+(d[0]?' ('+d[0].map(f=>f.l+' '+(+v[f.k].toFixed(2))).join(', ')+')':''))}
+function randFx(){if(!$('#wl').hidden)return;const e=Object.entries(FL).filter(([k])=>!rfOff.has(k));if(!e.length)return toast('No filters selected. Use the arrow next to Random filter.');const[n,d]=e[Math.random()*e.length|0],v={};(d[0]||[]).forEach(f=>{const q=f.s||1;v[f.k]=Math.round((f.min+Math.random()*(f.max-f.min))/q)*q});begin();d[1](L().x,v);end('Random: '+n);toast('Random filter: '+n+(d[0]?' ('+d[0].map(f=>f.l+' '+(+v[f.k].toFixed(2))).join(', ')+')':''))}
 /* dialogs */
 function dlg(t,fs,ok,pre,no){const el=document.createElement('div');el.className='ov';el.innerHTML=`<div class="dg"><h4>${t}</h4>${fs.map(f=>`<label>${f.l}${f.t=='select'?`<select data-k="${f.k}">${f.o.map(o=>`<option>${o}`).join('')}</select>`:`<input data-k="${f.k}" type="${f.t||'range'}" value="${f.v}" ${f.t&&f.t!='number'?'':`min="${f.min}" max="${f.max}" step="${f.s||1}"`}>`}<output></output></label>`).join('')}<div class="bt"><button>OK</button><button>Cancel</button></div></div>`;
 const rd=()=>{const v={};el.querySelectorAll('[data-k]').forEach(i=>{v[i.dataset.k]=i.type=='range'||i.type=='number'?+i.value:i.value;if(i.type=='range')i.nextElementSibling.textContent=i.value});return v};
 const x=y=>{el.remove();y&&y()};el.oninput=()=>pre&&pre(rd());const[b1,b2]=el.querySelectorAll('button');b1.onclick=()=>x(()=>ok(rd()));b2.onclick=()=>x(no);
-el.onkeydown=e=>{if(e.key=='Enter')b1.click();if(e.key=='Escape')b2.click()};document.body.append(el);const f=el.querySelector('input,select');f&&f.focus();pre&&pre(rd())}
-const newDoc=()=>dlg('New Document',[{k:'w',l:'Width',t:'number',min:1,max:8000,v:1200},{k:'h',l:'Height',t:'number',min:1,max:8000,v:800},{k:'f',l:'Background',t:'select',o:['White','Transparent','Background color']}],v=>init(v.w,v.h,v.f=='White'?'#ffffff':v.f=='Transparent'?0:bg));
+el.onkeydown=e=>{if(e.key=='Enter'&&e.target.tagName!='BUTTON')b1.click();if(e.key=='Escape')b2.click()};document.body.append(el);const f=el.querySelector('input,select');f&&f.focus();pre&&pre(rd())}
+const PRE=Object.fromEntries([['1:1',3000,3000],['4:5',2400,3000],['5:4',3000,2400],['2:3',2000,3000],['3:2',3000,2000],['3:4',2250,3000],['4:3',3000,2250],['9:16',2160,3840],['16:9',3840,2160]].map(([r,w,h])=>[`${r} (${w} × ${h})`,[w,h]]));
+const newDoc=()=>{const sync=v=>document.querySelectorAll('.ov .pr button').forEach(b=>b.classList.toggle('on',b.dataset.w==v.w&&b.dataset.h==v.h)),q=k=>document.querySelector('.ov [data-k='+k+']');
+dlg('New Document',[{k:'w',l:'Width',t:'number',min:1,max:8000,v:1200},{k:'h',l:'Height',t:'number',min:1,max:8000,v:800},{k:'f',l:'Background',t:'select',o:['White','Transparent','Background color']}],v=>init(v.w,v.h,v.f=='White'?'#ffffff':v.f=='Transparent'?0:bg),sync);
+document.querySelector('.ov h4').insertAdjacentHTML('afterend','<div class="pr">'+Object.entries(PRE).map(([k,[w,h]])=>{const r=w/h,bw=r>=1?26:Math.round(26*r),bh=r>=1?Math.round(26/r):26;return`<button data-w="${w}" data-h="${h}" title="${w} × ${h}"><span class="bx"><i style="width:${bw}px;height:${bh}px"></i></span>${k.split(' ')[0]}</button>`}).join('')+'</div>');
+document.querySelector('.ov .pr').onclick=e=>{const b=e.target.closest('button');if(!b)return;q('w').value=b.dataset.w;q('h').value=b.dataset.h;q('w').dispatchEvent(new Event('input',{bubbles:true}))}};
 /* file */
 function loadImg(f,lay){const u=URL.createObjectURL(f),i=new Image;i.onload=()=>{const ly=(lay||place)&&$('#wl').hidden;place=0;if(ly){const nw=Math.max(W,i.width),nh=Math.max(H,i.height),grow=nw>W||nh>H;if(grow){const dx=Math.round((nw-W)/2),dy=Math.round((nh-H)/2);reshape(nw,nh,(x,o)=>x.drawImage(o,dx,dy))}const l=addLayer(f.name);l.x.drawImage(i,Math.round((W-i.width)/2),Math.round((H-i.height)/2));commit('Place Image');if(grow)fit()}else{init(i.width,i.height,0);L().x.drawImage(i,0,0);L().name=f.name;hist=[];hi=-1;commit('Open')}URL.revokeObjectURL(u)};i.src=u}
 fi.onchange=()=>{const f=fi.files[0];fi.value='';f&&loadImg(f)};addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();const fs=[...e.dataTransfer.files].filter(f=>/^image/.test(f.type));if(!$('#wl').hidden)fs[0]&&loadImg(fs[0],0);else fs.forEach(f=>loadImg(f,1))});
@@ -211,7 +220,14 @@ const m=document.createElement('span');m.innerHTML=LOGO;m.style.cssText='padding
 $('#wl h1').insertAdjacentHTML('beforebegin','<div class="lgw">'+LOGO+'</div>');
 const i=new Image;i.onload=()=>{const ic=n=>{const c=cv(n,n),x=c.getContext('2d');x.fillStyle='#1c0f2e';x.fillRect(0,0,n,n);x.drawImage(i,0,0,n,n);return c.toDataURL()};
 lk('apple-touch-icon',ic(180));try{const j={name:'Pixelsmith',short_name:'Pixelsmith',start_url:location.href.split('#')[0],display:'standalone',background_color:'#262626',theme_color:'#1c1c1c',icons:[{src:ic(192),sizes:'192x192',type:'image/png'},{src:ic(512),sizes:'512x512',type:'image/png',purpose:'any'}]};lk('manifest',URL.createObjectURL(new Blob([JSON.stringify(j)],{type:'application/manifest+json'})))}catch(e){}};i.src=u})();
-const rf=document.createElement('button');rf.id='rf';rf.title='Apply a random filter with random settings';rf.innerHTML='<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></svg>Random filter';rf.onclick=randFx;mb.append(rf);
+const rf=document.createElement('button');rf.id='rf';rf.title='Apply a random filter with random settings';rf.innerHTML='<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></svg>Random filter';rf.onclick=randFx;
+let rfOff=new Set();try{rfOff=new Set(JSON.parse(localStorage.getItem('pxs-rf-off')||'[]'))}catch(_){}
+const rc=document.createElement('button'),rw=document.createElement('div'),rd=document.createElement('div');rw.id='rfw';rc.id='rc';rd.id='rd';rd.hidden=1;rc.title='Choose which filters can be picked';rc.innerHTML='<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+const rdSync=()=>{const b=[...rd.querySelectorAll('[data-f]')],n=b.filter(x=>x.checked).length,a=rd.querySelector('#rall');a.checked=n==b.length;a.indeterminate=n>0&&n<b.length};
+rd.innerHTML='<label><input type="checkbox" id="rall"><b>Select all</b></label><hr>'+Object.keys(FL).map(k=>`<label><input type="checkbox" data-f="${k}"${rfOff.has(k)?'':' checked'}>${k}</label>`).join('');
+rd.onchange=e=>{const t=e.target;if(t.id=='rall')rd.querySelectorAll('[data-f]').forEach(x=>x.checked=t.checked);rfOff=new Set([...rd.querySelectorAll('[data-f]')].filter(x=>!x.checked).map(x=>x.dataset.f));rdSync();try{localStorage.setItem('pxs-rf-off',JSON.stringify([...rfOff]))}catch(_){}};
+rc.onclick=()=>{rd.hidden=!rd.hidden};rw.append(rf,rc,rd);mb.append(rw);rdSync();
+document.addEventListener('pointerdown',e=>{if(!rw.contains(e.target))rd.hidden=1});
 const tz=document.createElement('div');tz.id='toast';document.body.append(tz);
 $('#wn').onclick=newDoc;$('#wo').onclick=()=>{place=0;fi.click()};
 setTool('brush');tab('Swatches');init(1200,800,'#ffffff');$('#wl').hidden=0;
