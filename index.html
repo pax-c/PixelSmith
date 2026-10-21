@@ -34,7 +34,10 @@ select,input[type=text],input[type=number]{background:var(--d);color:var(--t);bo
 #wl{position:fixed;top:24px;left:0;right:0;bottom:0;z-index:40;background:var(--bg);display:grid;place-items:center}#wl[hidden]{display:none}
 #wl h1{font-size:30px;font-weight:300;margin:0 0 6px;color:#fff}#wl p{margin:0 0 28px;color:var(--m);font-size:13px}#wl .row{display:flex;gap:14px}
 #wl button{width:190px;height:120px;background:var(--p);color:var(--t);border:1px solid #000;border-radius:4px;font:inherit;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#wl button:hover{border-color:var(--a);background:var(--p2)}.lgw{width:76px;margin-bottom:18px}.lgw svg{display:block;width:100%;height:auto}#wl button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+#wl button:hover{border-color:var(--a);background:var(--p2)}#rf{margin-left:auto;margin-right:6px;align-self:center;display:flex;align-items:center;gap:6px;background:var(--p2);color:var(--t);border:1px solid #000;border-radius:3px;padding:0 10px;height:20px;font:inherit}#rf:hover{background:var(--a);color:#fff}
+#rf svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);background:var(--d);border:1px solid #000;padding:7px 14px;border-radius:4px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}#toast.on{opacity:1}
+.lgw{width:76px;margin-bottom:18px}.lgw svg{display:block;width:100%;height:auto}#wl button svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 </style></head><body><div id="app">
 <div id="mb"></div><div id="ob"></div><div id="tb"></div>
 <div id="cv"><div id="wrap"><canvas id="main"></canvas><canvas id="ov" style="pointer-events:none"></canvas></div></div>
@@ -114,6 +117,8 @@ Object.assign(FL,{
 'Solarize':[0,px(a=>{for(let i=0;i<a.length;i++)if(i%4<3&&a[i]>127)a[i]=255-a[i]})]});
 function fxd(t,fs,fn){begin();const run=v=>{L().x.putImageData(eb,0,0);fn(L().x,v);render()};dlg(t,fs,v=>{run(v);end(t)},run,()=>{L().x.putImageData(eb,0,0);eb=null;render()})}
 function runFx(n,d){if(d[0])fxd(n,d[0],d[1]);else{begin();d[1](L().x);end(n)}}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),3000)}
+function randFx(){if(!$('#wl').hidden)return;const e=Object.entries(FL),[n,d]=e[Math.random()*e.length|0],v={};(d[0]||[]).forEach(f=>{const q=f.s||1;v[f.k]=Math.round((f.min+Math.random()*(f.max-f.min))/q)*q});begin();d[1](L().x,v);end('Random: '+n);toast('Random filter: '+n+(d[0]?' ('+d[0].map(f=>f.l+' '+(+v[f.k].toFixed(2))).join(', ')+')':''))}
 /* dialogs */
 function dlg(t,fs,ok,pre,no){const el=document.createElement('div');el.className='ov';el.innerHTML=`<div class="dg"><h4>${t}</h4>${fs.map(f=>`<label>${f.l}${f.t=='select'?`<select data-k="${f.k}">${f.o.map(o=>`<option>${o}`).join('')}</select>`:`<input data-k="${f.k}" type="${f.t||'range'}" value="${f.v}" ${f.t&&f.t!='number'?'':`min="${f.min}" max="${f.max}" step="${f.s||1}"`}>`}<output></output></label>`).join('')}<div class="bt"><button>OK</button><button>Cancel</button></div></div>`;
 const rd=()=>{const v={};el.querySelectorAll('[data-k]').forEach(i=>{v[i.dataset.k]=i.type=='range'||i.type=='number'?+i.value:i.value;if(i.type=='range')i.nextElementSibling.textContent=i.value});return v};
@@ -188,7 +193,7 @@ Edit:[['Undo',undo,'Ctrl+Z'],['Redo',redo,'Ctrl+Shift+Z'],['Fill with Foreground
 Image:[['Image Size…',()=>sizeDlg('Image Size',v=>(x,o)=>x.drawImage(o,0,0,v.w,v.h))],['Canvas Size…',()=>sizeDlg('Canvas Size',v=>(x,o)=>x.drawImage(o,(v.w-W)/2,(v.h-H)/2))],['Rotate 90° CW',()=>rot(Math.PI/2,1)],['Rotate 90° CCW',()=>rot(-Math.PI/2,1)],['Rotate 180°',()=>rot(Math.PI,0)],['Flip Horizontal',()=>flip(1)],['Flip Vertical',()=>flip(0)]],
 Layer:[['New Layer',()=>{addLayer('Layer '+uid);commit('New Layer')},'Ctrl+Shift+N'],['Duplicate Layer',dup,'Ctrl+J'],['Delete Layer',del],['Merge Down',mergeDown,'Ctrl+E'],['Flatten Image',flatten],['Move Up',()=>mvL(1),'Ctrl+]'],['Move Down',()=>mvL(-1),'Ctrl+['],['Drop Shadow (toggle)',()=>toggleFx('sh')],['Outer Glow (toggle)',()=>toggleFx('gl')]],
 Select:[['All',selAll,'Ctrl+A'],['Deselect',()=>setSel(null),'Ctrl+D'],['Inverse',inv,'Ctrl+Shift+I']],
-Adjustments:Object.entries(AD).map(([k,d])=>[k,()=>runFx(k,d),k=='Invert'?'Ctrl+I':'']),Filter:Object.entries(FL).map(([k,d])=>[k,()=>runFx(k,d)]),
+Adjustments:Object.entries(AD).map(([k,d])=>[k,()=>runFx(k,d),k=='Invert'?'Ctrl+I':'']),Filter:[['Random Filter',randFx],...Object.entries(FL).map(([k,d])=>[k,()=>runFx(k,d)])],
 View:[['Zoom In',()=>zc(1.25),'Ctrl+='],['Zoom Out',()=>zc(.8),'Ctrl+-'],['Fit on Screen',()=>fit(),'Ctrl+0'],['Actual Pixels',()=>fit(1),'Ctrl+1']]};
 const mb=$('#mb'),keys=[],closeM=()=>mb.querySelectorAll('.dd').forEach(d=>d.hidden=1);
 for(const[n,items]of Object.entries(M)){const s=document.createElement('span'),dd=document.createElement('div');s.textContent=n;dd.className='dd';dd.hidden=1;
@@ -206,6 +211,8 @@ const m=document.createElement('span');m.innerHTML=LOGO;m.style.cssText='padding
 $('#wl h1').insertAdjacentHTML('beforebegin','<div class="lgw">'+LOGO+'</div>');
 const i=new Image;i.onload=()=>{const ic=n=>{const c=cv(n,n),x=c.getContext('2d');x.fillStyle='#1c0f2e';x.fillRect(0,0,n,n);x.drawImage(i,0,0,n,n);return c.toDataURL()};
 lk('apple-touch-icon',ic(180));try{const j={name:'Pixelsmith',short_name:'Pixelsmith',start_url:location.href.split('#')[0],display:'standalone',background_color:'#262626',theme_color:'#1c1c1c',icons:[{src:ic(192),sizes:'192x192',type:'image/png'},{src:ic(512),sizes:'512x512',type:'image/png',purpose:'any'}]};lk('manifest',URL.createObjectURL(new Blob([JSON.stringify(j)],{type:'application/manifest+json'})))}catch(e){}};i.src=u})();
+const rf=document.createElement('button');rf.id='rf';rf.title='Apply a random filter with random settings';rf.innerHTML='<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></svg>Random filter';rf.onclick=randFx;mb.append(rf);
+const tz=document.createElement('div');tz.id='toast';document.body.append(tz);
 $('#wn').onclick=newDoc;$('#wo').onclick=()=>{place=0;fi.click()};
 setTool('brush');tab('Swatches');init(1200,800,'#ffffff');$('#wl').hidden=0;
 </script></body></html>
