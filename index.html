@@ -56,7 +56,7 @@ select,input[type=text],input[type=number]{background:var(--d);color:var(--t);bo
 <script>
 const $=s=>document.querySelector(s),cv=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c},ctx2=c=>c.getContext('2d',{willReadFrequently:true});
 let W,H,layers,cur,sel=null,ol=[],hist,hi,fg='#000000',bg='#ffffff',tool='brush',Z=1,OX=0,OY=0,uid=1,eb=null,pv=null,ph=0,sp=0,cs=null,cc,co,st=0,lp,place=0,pan=null,dr=null,pts=[];
-const P={size:24,hard:70,op:100,tol:32,mq:'Rectangular',gt:'Linear',gm:'Foreground to Background',sh:'Rectangle',dm:'Dodge'};
+const P={size:100,hard:70,op:100,tol:32,mq:'Rectangular',gt:'Linear',gm:'Foreground to Background',sh:'Rectangle',dm:'Dodge'};
 const main=$('#main'),mc=main.getContext('2d'),ov=$('#ov'),oc=ov.getContext('2d'),wrap=$('#wrap'),cvE=$('#cv'),fi=$('#fi');
 const BM={Normal:'source-over',Multiply:'multiply',Screen:'screen',Overlay:'overlay',Darken:'darken',Lighten:'lighten','Color Dodge':'color-dodge','Color Burn':'color-burn','Hard Light':'hard-light','Soft Light':'soft-light',Difference:'difference',Exclusion:'exclusion',Hue:'hue',Saturation:'saturation',Color:'color',Luminosity:'luminosity'};
 const L=()=>layers[cur],norm=(()=>{const x=cv(1,1).getContext('2d');return s=>{x.fillStyle=s;return x.fillStyle}})();
@@ -205,13 +205,13 @@ else Object.entries(n=='Adjustments'?AD:FL).forEach(([k,d])=>{const b=document.c
 const M={File:[['New…',newDoc,'Ctrl+N'],['Open…',()=>{place=0;fi.click()},'Ctrl+O'],['Place Image…',()=>{place=1;fi.click()}],['Save as PNG',()=>save('png'),'Ctrl+S'],['Save as JPEG',()=>save('jpeg'),'Ctrl+Shift+S']],
 Edit:[['Undo',undo,'Ctrl+Z'],['Redo',redo,'Ctrl+Shift+Z'],['Fill with Foreground',()=>fill(fg)],['Fill with Background',()=>fill(bg)],['Clear',clearSel]],
 Image:[['Image Size…',()=>sizeDlg('Image Size',v=>(x,o)=>x.drawImage(o,0,0,v.w,v.h))],['Canvas Size…',()=>sizeDlg('Canvas Size',v=>(x,o)=>x.drawImage(o,(v.w-W)/2,(v.h-H)/2))],['Rotate 90° CW',()=>rot(Math.PI/2,1)],['Rotate 90° CCW',()=>rot(-Math.PI/2,1)],['Rotate 180°',()=>rot(Math.PI,0)],['Flip Horizontal',()=>flip(1)],['Flip Vertical',()=>flip(0)]],
-Layer:[['New Layer',()=>{addLayer('Layer '+uid);commit('New Layer')},'Ctrl+Shift+N'],['Duplicate Layer',dup,'Ctrl+J'],['Delete Layer',del],['Merge Down',mergeDown,'Ctrl+E'],['Flatten Image',flatten],['Move Up',()=>mvL(1),'Ctrl+]'],['Move Down',()=>mvL(-1),'Ctrl+['],['Drop Shadow (toggle)',()=>toggleFx('sh')],['Outer Glow (toggle)',()=>toggleFx('gl')]],
+Layer:[['New Layer',()=>{addLayer('Layer '+uid);commit('New Layer')},'Ctrl+Shift+N'],['Duplicate Layer',dup,'Ctrl+J'],['Delete Layer',del],['Merge Down',mergeDown,'Ctrl+E'],['Flatten Image',flatten],['Move Up',()=>mvL(1),'Ctrl+]'],['Move Down',()=>mvL(-1),'Ctrl+['],['Drop Shadow (toggle)',()=>toggleFx('sh'),'','sh'],['Outer Glow (toggle)',()=>toggleFx('gl'),'','gl']],
 Select:[['All',selAll,'Ctrl+A'],['Deselect',()=>setSel(null),'Ctrl+D'],['Inverse',inv,'Ctrl+Shift+I']],
 Adjustments:Object.entries(AD).map(([k,d])=>[k,()=>runFx(k,d),k=='Invert'?'Ctrl+I':'']),Filter:[['Random Filter',randFx],...Object.entries(FL).map(([k,d])=>[k,()=>runFx(k,d)])],
 View:[['Zoom In',()=>zc(1.25),'Ctrl+='],['Zoom Out',()=>zc(.8),'Ctrl+-'],['Fit on Screen',()=>fit(),'Ctrl+0'],['Actual Pixels',()=>fit(1),'Ctrl+1']]};
-const mb=$('#mb'),keys=[],closeM=()=>mb.querySelectorAll('.dd').forEach(d=>d.hidden=1);
+const mb=$('#mb'),keys=[],pvFx=null,endPv=()=>{if(pvFx){pvFx.l.fx=pvFx.o;pvFx=null;render()}},closeM=()=>{endPv();mb.querySelectorAll('.dd').forEach(d=>d.hidden=1)};
 for(const[n,items]of Object.entries(M)){const s=document.createElement('span'),dd=document.createElement('div');s.textContent=n;dd.className='dd';dd.hidden=1;
-for(const[l,f,sc]of items){const d=document.createElement('div');d.innerHTML=`${l}<i>${sc||''}</i>`;d.onclick=()=>{closeM();f()};dd.append(d);if(sc)keys.push({s:/Shift/.test(sc),k:sc.split('+').pop().toLowerCase(),f})}
+for(const[l,f,sc,pk]of items){const d=document.createElement('div');d.innerHTML=`${l}<i>${sc||''}</i>`;d.onclick=()=>{closeM();f()};if(pk){d.onmouseenter=()=>{endPv();const a=L();pvFx={l:a,o:a.fx};a.fx={[pk]:!a.fx[pk]};render()};d.onmouseleave=endPv}dd.append(d);if(sc)keys.push({s:/Shift/.test(sc),k:sc.split('+').pop().toLowerCase(),f})}
 s.append(dd);s.onclick=e=>{if(e.target==s){const o=!dd.hidden;closeM();dd.hidden=o}};s.onmouseenter=()=>{if([...mb.querySelectorAll('.dd')].some(x=>!x.hidden)){closeM();dd.hidden=0}};mb.append(s)}
 document.addEventListener('pointerdown',e=>{if(!mb.contains(e.target))closeM()});
 addEventListener('keydown',e=>{if($('.ov')||/TEXTAREA|SELECT/.test(e.target.tagName)||(e.target.tagName=='INPUT'&&e.target.type!='range'&&e.target.type!='color'))return;const k=e.key.toLowerCase();
