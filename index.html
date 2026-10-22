@@ -40,6 +40,7 @@ select,input[type=text],input[type=number]{background:var(--d);color:var(--t);bo
 #rd label{display:flex;align-items:center;gap:9px;padding:4px 12px}#rd label:hover{background:var(--p2)}#rd hr{border:0;border-top:1px solid #222;margin:3px 0}#rd input{accent-color:var(--a)}
 .pr{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0 4px}.pr button{background:var(--d);color:var(--m);border:1px solid #000;border-radius:3px;padding:6px 0 5px;font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px}
 .cp{display:flex;gap:3px}.cp button{width:28px;height:26px;background:var(--d);color:var(--m);border:1px solid #000;border-radius:3px;display:grid;place-items:center;padding:0;font:inherit;font-size:14px}.cp button:hover{border-color:var(--a);color:var(--t)}.cp button.on{border-color:var(--a);color:#fff;background:#243447}.cp button.ok{color:#7c7}.cp i{display:block;border:1.5px solid currentColor;border-radius:1.5px}.cp i.fr{border-style:dashed}.cp i.or{background:rgba(255,255,255,.28)}#crinfo{min-width:110px;color:var(--t)}
+.hint{color:var(--m);font-size:11px;line-height:1.45;margin-top:10px}
 .pr button:hover{border-color:var(--a);color:var(--t)}.pr button.on{border-color:var(--a);color:#fff;background:#243447}.pr .bx{width:28px;height:28px;display:grid;place-items:center}.pr i{display:block;border:1.5px solid currentColor;border-radius:2px}
 #rf svg,#rc svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);background:var(--d);border:1px solid #000;padding:7px 14px;border-radius:4px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none}#toast.on{opacity:1}
@@ -56,7 +57,7 @@ select,input[type=text],input[type=number]{background:var(--d);color:var(--t);bo
 <input type="file" id="fi" accept="image/*" hidden>
 <script>
 const $=s=>document.querySelector(s),cv=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c},ctx2=c=>c.getContext('2d',{willReadFrequently:true});
-let W,H,layers,cur,sel=null,ol=[],hist,hi,fg='#000000',bg='#ffffff',tool='brush',Z=1,OX=0,OY=0,uid=1,eb=null,pv=null,ph=0,sp=0,cs=null,cc,co,st=0,lp,place=0,pan=null,dr=null,pts=[],cr=null,crm=null,crR='Free',crF=0;
+let W,H,layers,cur,sel=null,ol=[],hist,hi,fg='#000000',bg='#ffffff',tool='brush',Z=1,OX=0,OY=0,uid=1,eb=null,pv=null,ph=0,sp=0,cs=null,cc,co,st=0,lp,place=0,pan=null,dr=null,pts=[],cr=null,crm=null,crR='Free',crF=0,pvFx=null;
 const P={size:100,hard:70,op:100,tol:32,mq:'Rectangular',gt:'Linear',gm:'Foreground to Background',sh:'Rectangle',dm:'Dodge'};
 const main=$('#main'),mc=main.getContext('2d'),ov=$('#ov'),oc=ov.getContext('2d'),wrap=$('#wrap'),cvE=$('#cv'),fi=$('#fi');
 const BM={Normal:'source-over',Multiply:'multiply',Screen:'screen',Overlay:'overlay',Darken:'darken',Lighten:'lighten','Color Dodge':'color-dodge','Color Burn':'color-burn','Hard Light':'hard-light','Soft Light':'soft-light',Difference:'difference',Exclusion:'exclusion',Hue:'hue',Saturation:'saturation',Color:'color',Luminosity:'luminosity'};
@@ -138,7 +139,18 @@ document.querySelector('.ov .pr').onclick=e=>{const b=e.target.closest('button')
 /* file */
 function loadImg(f,lay){const u=URL.createObjectURL(f),i=new Image;i.onload=()=>{const ly=(lay||place)&&$('#wl').hidden;place=0;if(ly){const nw=Math.max(W,i.width),nh=Math.max(H,i.height),grow=nw>W||nh>H;if(grow){const dx=Math.round((nw-W)/2),dy=Math.round((nh-H)/2);reshape(nw,nh,(x,o)=>x.drawImage(o,dx,dy))}const l=addLayer(f.name);l.x.drawImage(i,Math.round((W-i.width)/2),Math.round((H-i.height)/2));commit('Place Image');if(grow)fit()}else{init(i.width,i.height,0);L().x.drawImage(i,0,0);L().name=f.name;hist=[];hi=-1;commit('Open')}URL.revokeObjectURL(u)};i.src=u}
 fi.onchange=()=>{const f=fi.files[0];fi.value='';f&&loadImg(f)};addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>{e.preventDefault();const fs=[...e.dataTransfer.files].filter(f=>/^image/.test(f.type));if(!$('#wl').hidden)fs[0]&&loadImg(fs[0],0);else fs.forEach(f=>loadImg(f,1))});
-function save(t){render();const o=cv(W,H),x=o.getContext('2d');if(t=='jpeg'){x.fillStyle='#fff';x.fillRect(0,0,W,H)}x.drawImage(main,0,0);o.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='image.'+(t=='jpeg'?'jpg':'png');a.click()},'image/'+t,.92)}
+/* export */
+const EXF={PNG:['image/png','png','PNG image'],JPEG:['image/jpeg','jpg','JPEG image'],WebP:['image/webp','webp','WebP image']},EXS=Object.keys(EXF).filter(k=>document.createElement('canvas').toDataURL(EXF[k][0]).startsWith('data:'+EXF[k][0])),ex={name:'image',fmt:'PNG',q:92};
+async function doExport(v){const[mime,ext,desc]=EXF[v.fmt];const base=(v.name||'image').trim().replace(/[\\/:*?"<>|]+/g,'_').replace(/\.(png|jpe?g|webp)$/i,'')||'image',fname=base+'.'+ext;let h=null;
+if(window.showSaveFilePicker){try{h=await showSaveFilePicker({suggestedName:fname,startIn:'pictures',excludeAcceptAllOption:true,types:[{description:desc,accept:{[mime]:['.'+ext]}}]})}catch(e){if(e&&e.name=='AbortError')return;h=null}}
+render();const o=document.createElement('canvas');o.width=W;o.height=H;const x=o.getContext('2d');if(v.fmt=='JPEG'){x.fillStyle='#fff';x.fillRect(0,0,W,H)}x.drawImage(main,0,0);
+const b=await new Promise(r=>o.toBlob(r,mime,v.q/100));if(!b)return toast('Export failed');
+if(h){try{const w=await h.createWritable();await w.write(b);await w.close();return toast('Saved '+h.name)}catch(e){toast('Could not write to that location, downloading instead')}}
+const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fname;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast('Exported '+fname)}
+function exportDlg(){if($('#wl').hidden==false)return;const pk=!!window.showSaveFilePicker;
+dlg('Export As',[{k:'name',l:'File name',t:'text',v:ex.name},{k:'fmt',l:'Format',t:'select',o:EXS},{k:'q',l:'Quality',min:1,max:100,v:ex.q}],v=>{Object.assign(ex,{name:v.name,fmt:v.fmt,q:v.q});doExport(v)},v=>{const q=document.querySelector('.ov [data-k=q]');if(q)q.parentElement.style.display=v.fmt=='PNG'?'none':'';const h=document.getElementById('exh');if(h)h.textContent=(pk?'You’ll choose where to save the file.':'This browser saves exports to your Downloads folder (or asks where, if you’ve set it to).')+(v.fmt=='JPEG'?' JPEG has no transparency, so transparent areas become white.':'')});
+const el=document.querySelector('.ov'),bt=el.querySelector('.bt');bt.insertAdjacentHTML('beforebegin','<div class="hint" id="exh"></div>');bt.firstElementChild.textContent=pk?'Choose Location…':'Download';
+const f=el.querySelector('[data-k=fmt]');f.value=EXS.includes(ex.fmt)?ex.fmt:EXS[0];f.dispatchEvent(new Event('input',{bubbles:true}));const n=el.querySelector('[data-k=name]');n.focus();n.select()}
 /* layer ops */
 const dup=()=>{const l=addLayer(L().name+' copy');l.x.drawImage(layers[cur-1].c,0,0);Object.assign(l,{op:layers[cur-1].op,bm:layers[cur-1].bm});commit('Duplicate Layer')};
 const del=()=>{if(layers.length>1){layers.splice(cur,1);cur=Math.max(0,cur-1);commit('Delete Layer')}};
@@ -231,14 +243,14 @@ const tp=$('#tp');function tab(n){[...$('#tabs').children].forEach(b=>b.classLis
 else Object.entries(n=='Adjustments'?AD:FL).forEach(([k,d])=>{const b=document.createElement('button');b.textContent=k;b.onclick=()=>runFx(k,d);tp.append(b)})}
 ['Swatches','Adjustments','Filters'].forEach(n=>{const b=document.createElement('b');b.textContent=n;b.onclick=()=>tab(n);$('#tabs').append(b)});
 /* menus */
-const M={File:[['New…',newDoc,'Ctrl+N'],['Open…',()=>{place=0;fi.click()},'Ctrl+O'],['Place Image…',()=>{place=1;fi.click()}],['Save as PNG',()=>save('png'),'Ctrl+S'],['Save as JPEG',()=>save('jpeg'),'Ctrl+Shift+S']],
+const M={File:[['New…',newDoc,'Ctrl+N'],['Open…',()=>{place=0;fi.click()},'Ctrl+O'],['Place Image…',()=>{place=1;fi.click()}],['Export As…',exportDlg,'Ctrl+S']],
 Edit:[['Undo',undo,'Ctrl+Z'],['Redo',redo,'Ctrl+Shift+Z'],['Fill with Foreground',()=>fill(fg)],['Fill with Background',()=>fill(bg)],['Clear',clearSel]],
 Image:[['Image Size…',()=>sizeDlg('Image Size',v=>(x,o)=>x.drawImage(o,0,0,v.w,v.h))],['Canvas Size…',()=>sizeDlg('Canvas Size',v=>(x,o)=>x.drawImage(o,(v.w-W)/2,(v.h-H)/2))],['Rotate 90° CW',()=>rot(Math.PI/2,1)],['Rotate 90° CCW',()=>rot(-Math.PI/2,1)],['Rotate 180°',()=>rot(Math.PI,0)],['Flip Horizontal',()=>flip(1)],['Flip Vertical',()=>flip(0)]],
 Layer:[['New Layer',()=>{addLayer('Layer '+uid);commit('New Layer')},'Ctrl+Shift+N'],['Duplicate Layer',dup,'Ctrl+J'],['Delete Layer',del],['Merge Down',mergeDown,'Ctrl+E'],['Flatten Image',flatten],['Move Up',()=>mvL(1),'Ctrl+]'],['Move Down',()=>mvL(-1),'Ctrl+['],['Drop Shadow (toggle)',()=>toggleFx('sh'),'','sh'],['Outer Glow (toggle)',()=>toggleFx('gl'),'','gl']],
 Select:[['All',selAll,'Ctrl+A'],['Deselect',()=>setSel(null),'Ctrl+D'],['Inverse',inv,'Ctrl+Shift+I']],
 Adjustments:Object.entries(AD).map(([k,d])=>[k,()=>runFx(k,d),k=='Invert'?'Ctrl+I':'']),Filter:[['Random Filter',randFx],...Object.entries(FL).map(([k,d])=>[k,()=>runFx(k,d)])],
 View:[['Zoom In',()=>zc(1.25),'Ctrl+='],['Zoom Out',()=>zc(.8),'Ctrl+-'],['Fit on Screen',()=>fit(),'Ctrl+0'],['Actual Pixels',()=>fit(1),'Ctrl+1']]};
-const mb=$('#mb'),keys=[],pvFx=null,endPv=()=>{if(pvFx){pvFx.l.fx=pvFx.o;pvFx=null;render()}},closeM=()=>{endPv();mb.querySelectorAll('.dd').forEach(d=>d.hidden=1)};
+const mb=$('#mb'),keys=[],endPv=()=>{if(pvFx){pvFx.l.fx=pvFx.o;pvFx=null;render()}},closeM=()=>{endPv();mb.querySelectorAll('.dd').forEach(d=>d.hidden=1)};
 for(const[n,items]of Object.entries(M)){const s=document.createElement('span'),dd=document.createElement('div');s.textContent=n;dd.className='dd';dd.hidden=1;
 for(const[l,f,sc,pk]of items){const d=document.createElement('div');d.innerHTML=`${l}<i>${sc||''}</i>`;d.onclick=()=>{closeM();f()};if(pk){d.onmouseenter=()=>{endPv();const a=L();pvFx={l:a,o:a.fx};a.fx={[pk]:!a.fx[pk]};render()};d.onmouseleave=endPv}dd.append(d);if(sc)keys.push({s:/Shift/.test(sc),k:sc.split('+').pop().toLowerCase(),f})}
 s.append(dd);s.onclick=e=>{if(e.target==s){const o=!dd.hidden;closeM();dd.hidden=o}};s.onmouseenter=()=>{if([...mb.querySelectorAll('.dd')].some(x=>!x.hidden)){closeM();dd.hidden=0}};mb.append(s)}
